@@ -32,6 +32,64 @@ enum custom_keycodes {
 #define KC_UE KC_LBRC
 #define KC_SS KC_MINS
 
+/*
+bool override_key(keyrecord_t* record, uint16_t normal, uint16_t shifted) {
+    const uint8_t shift = MOD_BIT(KC_LSFT) | MOD_BIT(KC_RSFT);
+    // Todo, should maybe also check at least the weak mods
+    uint8_t current_mods = get_mods();
+    if (record->event.pressed) {
+        // Todo share this code with send keyboard report
+#ifndef NO_ACTION_ONESHOT
+        if (get_oneshot_mods()) {
+#if (defined(ONESHOT_TIMEOUT) && (ONESHOT_TIMEOUT > 0))
+            if (has_oneshot_mods_timed_out()) {
+                dprintf("Oneshot: timeout\n");
+                clear_oneshot_mods();
+            }
+#endif
+            current_mods |= get_oneshot_mods();
+            clear_oneshot_mods();
+        }
+#endif
+        bool shift_pressed = current_mods & shift;
+        const uint16_t target = shift_pressed ? shifted : normal;
+        uint8_t keycode = target & 0xFF;
+        if (keycode == KC_NO) {
+            return false;
+        }
+        press_key_with_level_mods(target);
+    }
+    return false;
+}
+
+static bool wake_dead_key(uint16_t keycode, keyrecord_t* record) {
+    if (record->event.pressed) {
+        register_code16(keycode);
+        unregister_code16(keycode);
+        register_code16(KC_SPACE);
+        unregister_code16(KC_SPACE);
+    }
+    // Let QMK handle onshots
+    return true;
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch(keycode) {
+    case APQU:
+        return override_key(record, SV_APOS, SV_QUOT);
+    case TILD:
+        return wake_dead_key(SV_TILD, record);
+    case CIRC:
+        return wake_dead_key(SV_CIRC, record);
+    case ACUT:
+        return wake_dead_key(SV_ACUT, record);
+    case GRAV:
+        return wake_dead_key(SV_GRAV, record);
+    }
+    return true;
+}
+*/
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_NEO2] = KC_KEYMAP(
