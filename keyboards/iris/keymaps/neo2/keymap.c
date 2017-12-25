@@ -30,12 +30,51 @@ enum custom_keycodes {
 #define KC_SS KC_MINS
 
 
-#define KC__SL DE_SLSH
+// LAYER 3 keys
+
+// LAYER 3 LEFT UPPER
+#define KC__ELPS KC_TRNS // TODO: …
+#define KC__UNDS DE_UNDS
+#define KC__LBRC DE_LBRC
+#define KC__RBRC DE_RBRC
+#define KC__CIRC DE_CIRC
+
+// LAYER 3 LEFT HOME
 #define KC__BSL DE_BSLS
+#define KC__SL DE_SLSH
+#define KC__LCBR DE_LCBR
+#define KC__RCBR DE_RCBR
+#define KC__ASTR DE_ASTR
+
+// LAYER 3 LEFT LOWER
+#define KC__HASH DE_HASH
+#define KC__DOLR DE_DLR
+#define KC__PIPE DE_PIPE
+#define KC__TILD DE_TILD
+#define KC__BTCK DE_GRV
+
+// LAYER 3 RIGHT UPPER
+#define KC__EXLM DE_EXLM
+#define KC__LESS DE_LESS
+#define KC__MORE DE_MORE
+#define KC__EQL DE_EQL
+#define KC__AMPR DE_AMPR
+#define KC__LNGS KC_TRNS // TODO: long s
+
+// LAYER 3 RIGHT HOME
+#define KC__QST DE_QST
 #define KC__LPR LSFT(KC_8)
 #define KC__RPR LSFT(KC_9)
+#define KC__MINS DE_MINS
+#define KC__COLN DE_COLN
+#define KC__AT DE_AT
 
-
+// LAYER 3 RIGHT LOWER
+#define KC__PLUS DE_PLUS
+#define KC__PERC DE_PERC
+#define KC__DQOT DE_DQOT
+#define KC__QUOT DE_QUOT 
+#define KC__SCLN DE_SCLN
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
@@ -52,7 +91,6 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                   LCTL , SPC  , LALT,           LGUI, ENT  , MOD4
   //                            `------+------+----'          `-----+------+------'
   ),
-
 
   // differences in shifted layer
   [_LAYER2] = KC_KEYMAP(
@@ -73,16 +111,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //,------+------+------+------+------+------.                     ,------+------+------+------+------+------.
            ,      ,      ,      ,      ,      ,                            ,      ,      ,      ,      ,      ,
   //|------+------+------+------+------+------|                     |------+------+------+------+------+------|
-           ,      ,      ,      ,      ,      ,                            ,      ,      ,      ,      ,      ,
+           , _ELPS, _UNDS, _LBRC, _RBRC, _CIRC,                       _EXLM, _LESS, _MORE, _EQL , _AMPR, _LNGS,
   //|------+------+------+------+------+------|                     |------+------+------+------+------+------|
-           , _BSL , _SL  ,      ,      ,      ,                            , _LPR , _RPR ,      ,      ,      ,
+           , _BSL , _SL  , _LCBR, _RCBR, _ASTR,                       _QST , _LPR , _RPR , _MINS, _COLN, _AT  ,
   //|------+------+------+------+------+------+------.       ,------|------+------+------+------+------+------|
-           ,      ,      ,      ,      ,      ,      ,              ,      ,      ,      ,      ,      ,      ,
+           , _HASH, _DOLR, _PIPE, _TILD, _BTCK,      ,              , _PLUS, _PERC, _DQOT, _QUOT, _SCLN,      ,
   //`------+------+------+------+------+------+------/       \------+------+------+------+------+------+------'
                                        ,      ,     ,               ,      ,  
   //                            `------+------+----'          `-----+------+------'
   ),
-
 
   [_LAYER4] = KC_KEYMAP(
   //,------+------+------+------+------+------.                     ,------+------+------+------+------+------.
