@@ -136,3 +136,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* Bootmagic Lite key configuration */
 //#define BOOTMAGIC_LITE_ROW 0
 //#define BOOTMAGIC_LITE_COLUMN 0
+
+#define UNICODE_SELECTED_MODES UC_MAC, UC_LNX, UC_WINC
