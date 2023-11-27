@@ -1,8 +1,8 @@
-#include "_pin_defs.h"
 #include "gpio.h"
 #include "info_config.h"
 #include "quantum.h"
 #include "matrix.h"
+#include "print.h"
 #include "i2c_master.h"
 
 
@@ -72,6 +72,11 @@ void gpio_init(uint gpio);
 void matrix_init_custom(void) {
     // TODO: initialize hardware here
 
+#ifdef DEBUG
+    debug_enable = true;
+    debug_keyboard = true;
+#endif
+
     // not sure if needed (?) copied from dilemma.c
     for (int i=0; i<MATRIX_ROWS; i++) {
         gpio_init(row_pins[i]);
@@ -114,6 +119,8 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
         uint8_t port_a, port_b;
         i2c_readReg(MCP23017_TWI_ADDRESS, GPIOA, &port_a, 1, I2C_TIMEOUT);
         i2c_readReg(MCP23017_TWI_ADDRESS, GPIOB, &port_b, 1, I2C_TIMEOUT);
+
+        uprintf("read port a = %x, port b = %x\n", port_a, port_b);
 
         // read cols on GPIOs
 
