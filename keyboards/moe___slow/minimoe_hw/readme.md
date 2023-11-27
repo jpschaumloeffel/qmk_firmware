@@ -1,12 +1,12 @@
-# minimoe
+# handwired minimoe prototype
 
-![minimoe](imgur.com image replace me!)
+![minimoe](https://imgur.com/a/qWTn3Yv)
 
 *A short description of the keyboard/project*
 
 * Keyboard Maintainer: [Jan Schaumlöffel](https://github.com/jpschaumloeffel)
-* Hardware Supported: *The PCBs, controllers supported*
-* Hardware Availability: *Links to where you can find this hardware*
+* Hardware Supported: handwired matrix with a Sparkfun ProMicro 2040
+* Hardware Availability: just on my desk for now
 
 Make example for this keyboard (after setting up your build environment):
 
