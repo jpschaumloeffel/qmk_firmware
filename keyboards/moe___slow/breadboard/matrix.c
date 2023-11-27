@@ -62,18 +62,6 @@ static uint8_t mcp23017_init(void) {
     ret = i2c_writeReg(MCP23017_TWI_ADDRESS, GPPUA, &data[1], 2, I2C_TIMEOUT);
     if (ret) goto out;  // make sure we got an ACK
 
-/*
-    // set logical value (doesn't matter on inputs)
-    // - unused  : hi-Z : 1
-    // - input   : hi-Z : 1
-    // - driving : hi-Z : 1
-    data[0] = OLATA;
-    data[1] = 0b11111111;  // IODIRA
-    data[2] = (0b11111111);  // IODIRB
-
-    ret = i2c_transmit(TWI_ADDR_WRITE, (uint8_t *)data, 3, I2C_TIMEOUT);
-*/
-
 out:
     return ret;
 }
@@ -159,56 +147,3 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
 
     return matrix_has_changed;
 }
-
-
-
-/*
-bool matrix_scan_custom(matrix_row_t current_matrix[]) {
-    bool matrix_has_changed = false;
-
-    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
-        // Store last value of row prior to reading
-        matrix_row_t last_row_value = current_matrix[row];
-
-        matrix_row_t cols = 0;
-            // Select the row to scan
-        matrix_set_row_status(row);
-
-        matrix_io_delay();
-            //Set the local row
-
-#if defined(RIGHT_HALF)
-                // Initialize to 0x7F in case I2C read fails,
-                // as 0x75 would be no keys pressed
-                uint8_t data = 0x7F;
-                // Receive the columns from right half
-                i2c_receive(TWI_ADDR_WRITE, &data, 1, I2C_TIMEOUT);
-#endif
-
-        cols |= ((~(PINA | 0x80)) & 0x7F);
-#if defined(RIGHT_HALF)
-                cols |= (((~(data | 0x80)) & 0x7F) << 7);
-#endif
-
-        current_matrix[row] = cols;
-        matrix_has_changed |= (last_row_value != current_matrix[row]);
-    }
-
-    return matrix_has_changed;
-}
-
-void matrix_set_row_status(uint8_t row) {
-#if defined(RIGHT_HALF)
-    uint8_t txdata[3];
-
-    //Set the remote row on port A
-    txdata[0] = (GPIOA);
-    txdata[1] = ( 0xFF & ~(1<<row) );
-    i2c_transmit(TWI_ADDR_WRITE, (uint8_t *)txdata, 2, I2C_TIMEOUT);
-#endif
-
-    //Set the local row on port B
-    DDRB = (1 << row);
-    PORTB = ~(1 << row);
-}
-*/
