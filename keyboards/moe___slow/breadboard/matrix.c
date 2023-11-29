@@ -91,7 +91,7 @@ void matrix_init_custom(void) {
         gpio_init(col_pins[i]);
         setPinInput(col_pins[i]);
     }
-*/
+    */
 
     debug_enable = true;
     debug_keyboard = true;
@@ -104,70 +104,14 @@ void matrix_init_custom(void) {
     wait_ms(2000);
 
     // reset mcp
-    writePinHigh(GP1);
-    wait_ms(10);
     writePinLow(GP1);
-    wait_ms(10);
+    wait_ms(1);
     writePinHigh(GP1);
-    wait_ms(100);
+    wait_ms(5);
 
     i2c_init();
 
-/*
-    uprintf("i2c scan start\n");
-
-    writePinHigh(GP0);
-    wait_ms(10);
-    writePinLow(GP0);
-    wait_ms(10);
-    writePinHigh(GP0);
-    wait_ms(10);
-    writePinLow(GP0);
-
-
-    uint8_t data[2];
-    i2c_status_t res;
-    
-    for (uint8_t test_addr = 0; test_addr <= 0x7F; test_addr++) {
-
-        //res = i2c_transmit(test_addr << 1, &data, 1, I2C_TIMEOUT);
-        res = i2c_readReg((test_addr << 1) | 1, 0, data, 2, I2C_TIMEOUT);
-
-        if (res == 0) uprintf("i2c ping on %x, data %d\n", test_addr, data[0]);
-        wait_ms(1);
-    }
-
-
-    uprintf("i2c scan stop\n");   
-
-    writePinLow(GP0);
-    wait_ms(10);
-    writePinHigh(GP0);
-    wait_ms(10);
-    writePinLow(GP0);
-    wait_ms(10);
-    writePinHigh(GP0);
-    wait_ms(10);
-    writePinLow(GP0);
-    wait_ms(10);
-*/
-
     mcp23017_init();
-
-
-/*
-    writePinLow(GP0);
-    wait_ms(10);
-    writePinHigh(GP0);
-    wait_ms(10);
-    writePinLow(GP0);
-    wait_ms(10);
-    writePinHigh(GP0);
-    wait_ms(10);
-    writePinLow(GP0);
-    wait_ms(10);
-*/
-
 }
 
 void matrix_set_row_status(uint8_t row) {
