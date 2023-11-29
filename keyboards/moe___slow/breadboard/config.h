@@ -10,6 +10,8 @@
 
 /* disable debug print */
 //#define NO_DEBUG
+#define DEBUG
+#define DEBUG_MATRIX_SCAN_RATE
 
 /* disable print */
 //#define NO_PRINT
@@ -19,7 +21,10 @@
 //#define NO_ACTION_TAPPING
 //#define NO_ACTION_ONESHOT
 
-#define I2C1_SDA_PIN GP1
-#define I2C1_SCL_PIN GP0
+// #define I2C1_SDA_PIN GP1
+// #define I2C1_SCL_PIN GP0
+
+#define I2C1_OPMODE OPMODE_I2C
+#define I2C1_CLOCK_SPEED 100000
 
 #define UNICODE_SELECTED_MODES UNICODE_MODE_LINUX, UNICODE_MODE_WINCOMPOSE, UNICODE_MODE_MACOS
