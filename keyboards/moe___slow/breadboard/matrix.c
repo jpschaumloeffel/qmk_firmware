@@ -1,4 +1,6 @@
+#include <stdint.h>
 #include "gpio.h"
+#include "hal_i2c.h"
 #include "wait.h"
 #include "info_config.h"
 #include "quantum.h"
@@ -22,11 +24,14 @@ uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP23, GP9, GP8 };
 
 #define MCP23017_TWI_ADDRESS (0x20 << 1)
 
+#define IOCON 0x0A
+#define IOCON_BANK1 0x05
+
 #define IODIRA 0x00  // i/o direction register
 #define IODIRB 0x01
 
 #define GPPUA  0x0C  // GPIO pull-up resistor register
-#define GPPUB  0x1D
+#define GPPUB  0x0D
 
 #define GPIOA  0x12  // general purpose i/o port register (write modifies OLAT)
 #define GPIOB  0x13
@@ -37,30 +42,36 @@ static uint8_t mcp23017_init(void) {
     // default: iocon.bank = 0, iocon.seqop = 0
     // this is the "special mode" described in the datasheet which toggles between port a and port b reads
 
-    uint8_t ret;
+    i2c_status_t ret;
     uint8_t data[3];
+
+    ret = i2c_readReg(MCP23017_TWI_ADDRESS, IOCON, data, 2, I2C_TIMEOUT);
+    uprintf("%s: read from IOCON (%x), result=%d, data=%x %x\n", __FUNCTION__, IOCON, ret, data[0], data[1]);
+
+    ret = i2c_readReg(MCP23017_TWI_ADDRESS, IOCON, data, 2, I2C_TIMEOUT);
+    uprintf("%s: read from IOCON (%x), result=%d, data=%x %x\n", __FUNCTION__, IOCON_BANK1, ret, data[0], data[1]);
 
     // set pin direction
     // - unused  : input  : 1
     // - input   : input  : 1
     // - driving : output : 0
-    data[0] = IODIRA;
-    data[1] = 0b11111100;  // IODIRA
-    data[2] = (0b11111111);  // IODIRB
 
-    // ???
-    ret = i2c_writeReg(MCP23017_TWI_ADDRESS, IODIRA, &data[1], 2, I2C_TIMEOUT);
+    data[0] = 0b11111100;  // IODIRA
+    data[1] = 0b11111111;  // IODIRB
+    ret = i2c_writeReg(MCP23017_TWI_ADDRESS, IODIRA, data, 2, I2C_TIMEOUT);
+
+    uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, IODIRA, ret, data[0], data[1]);
+
     if (ret) goto out;  // make sure we got an ACK
 
-    // set pull-up
-    // - unused  : on  : 1
-    // - input   : on  : 1
-    // - driving : off : 0
-    data[0] = GPPUA;
-    data[1] = 0b11111111;  // IODIRA
-    data[2] = (0b11111111);  // IODIRB
+    // configure pull-ups
+    data[0] = 0b00000000;
+    data[1] = 0b00000011;
 
-    ret = i2c_writeReg(MCP23017_TWI_ADDRESS, GPPUA, &data[1], 2, I2C_TIMEOUT);
+    ret = i2c_writeReg(MCP23017_TWI_ADDRESS, GPPUA, data, 2, I2C_TIMEOUT);
+
+    uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, GPPUA, ret, data[0], data[1]);
+
     if (ret) goto out;  // make sure we got an ACK
 
 out:
@@ -82,18 +93,15 @@ void matrix_init_custom(void) {
     }
 */
 
-#ifdef DEBUG
     debug_enable = true;
     debug_keyboard = true;
-#endif
-
 
     setPinOutput(GP0);
     setPinOutput(GP1);
     setPinOutput(GP2);
     setPinOutput(GP3);
 
-    wait_ms(3000);
+    wait_ms(2000);
 
     // reset mcp
     writePinHigh(GP1);
@@ -105,6 +113,7 @@ void matrix_init_custom(void) {
 
     i2c_init();
 
+/*
     uprintf("i2c scan start\n");
 
     writePinHigh(GP0);
@@ -141,9 +150,12 @@ void matrix_init_custom(void) {
     wait_ms(10);
     writePinLow(GP0);
     wait_ms(10);
+*/
 
     mcp23017_init();
 
+
+/*
     writePinLow(GP0);
     wait_ms(10);
     writePinHigh(GP0);
@@ -154,6 +166,8 @@ void matrix_init_custom(void) {
     wait_ms(10);
     writePinLow(GP0);
     wait_ms(10);
+*/
+
 }
 
 void matrix_set_row_status(uint8_t row) {
@@ -169,9 +183,14 @@ void matrix_set_row_status(uint8_t row) {
     }
     */
     uint8_t data;
+    i2c_status_t ret;
+    (void) ret;
 
-    data = 1 << row;
-    i2c_writeReg(MCP23017_TWI_ADDRESS, GPIOA, &data, 1, I2C_TIMEOUT);
+    // set one zero
+    data = 0xFF & ~(1 << row);
+    ret = i2c_writeReg(MCP23017_TWI_ADDRESS, GPIOA, &data, 1, I2C_TIMEOUT);
+
+    // uprintf("%s: wrote to %x, result=%d, data=%x\n", __FUNCTION__, GPIOA, ret, data);
 }
 
 
@@ -187,8 +206,14 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
         matrix_io_delay();
 
         uint8_t port_b;
-        i2c_readReg(MCP23017_TWI_ADDRESS, GPIOB, &port_b, 1, I2C_TIMEOUT);
-        cols = port_b & 0x03;
+        i2c_status_t ret;
+        (void) ret;
+
+        ret = i2c_readReg(MCP23017_TWI_ADDRESS, GPIOB, &port_b, 1, I2C_TIMEOUT);
+
+
+        // uprintf("%s: read from %x, result=%d, data=%x\n", __FUNCTION__, GPIOB, ret, port_b);
+        cols = ~port_b & 0x03;
 
         /*
         // read port expander
