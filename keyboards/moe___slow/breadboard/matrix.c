@@ -99,14 +99,16 @@ void matrix_init_custom(void) {
     setPinOutput(GP0);
     setPinOutput(GP1);
     setPinOutput(GP2);
-    setPinOutput(GP3);
+    // setPinOutput(GP3);
 
     wait_ms(2000);
 
     // reset mcp
-    writePinLow(GP1);
+    writePinHigh(GP2);
     wait_ms(1);
-    writePinHigh(GP1);
+    writePinLow(GP2);
+    wait_ms(1);
+    writePinHigh(GP2);
     wait_ms(5);
 
     i2c_init();
