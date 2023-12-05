@@ -25,6 +25,7 @@ uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP23, GP9, GP8 };
 */
 
 #define MCP23017_TWI_ADDRESS 0x20
+#define MCP23017_RESET_GPIO GP2
 
 #define IOCON 0x0A
 #define IOCON_BANK1 0x05
@@ -124,31 +125,10 @@ void matrix_init_custom(void) {
     debug_enable = true;
     debug_keyboard = true;
 
-    uprintf("%s\n", __FUNCTION__);
+    wait_ms(2000);
+    uprintf("%s - start\n", __FUNCTION__);
 
-    wait_ms(1000);
-
-    setPinOutput(GP0);
-    setPinOutput(GP1);
-    setPinOutput(GP2);
-    setPinOutput(GP3);
-
-    // reset mcp
-    writePinHigh(GP2);
-    wait_ms(1);
-    writePinLow(GP2);
-    wait_ms(1);
-    writePinHigh(GP2);
-    wait_ms(5);
-
-
-    writePinHigh(GP3);
-    wait_ms(1);
-    writePinLow(GP3);
-    wait_ms(1);
-    writePinHigh(GP3);
-    wait_ms(5);
-
+    setPinOutput(MCP23017_RESET_GPIO);
 
     // select pio
     pio = pio0;
@@ -157,13 +137,9 @@ void matrix_init_custom(void) {
     /* Get PIOx peripheral out of reset state. */
     hal_lld_peripheral_unreset(pio_idx == 0 ? RESETS_ALLREG_PIO0 : RESETS_ALLREG_PIO1);
 
-
     // clang-format off
     iomode_t rgb_pin_mode = PAL_RP_PAD_SLEWFAST |
                             PAL_RP_GPIO_OE |
-#if defined(WS2812_EXTERNAL_PULLUP)
-                            PAL_RP_IOCTRL_OEOVER_DRVINVPERI |
-#endif
                             (pio_idx == 0 ? PAL_MODE_ALTERNATE_PIO0 : PAL_MODE_ALTERNATE_PIO1);
     // clang-format on
 
@@ -171,37 +147,16 @@ void matrix_init_custom(void) {
     palSetLineMode(PIN_SCL, rgb_pin_mode);
 
     sm = pio_claim_unused_sm(pio, true);
-    if (sm < 0) {
-        uprintf("ERROR: Failed to acquire state machine for WS2812 output!");
-        wait_ms(1);
-        writePinLow(GP2);
-        wait_ms(1);
-        writePinHigh(GP2);
-        wait_ms(1);
-        writePinLow(GP2);
-        wait_ms(1);
-        writePinHigh(GP2);
-        wait_ms(1);
-        writePinLow(GP2);
-        wait_ms(1);
-        writePinHigh(GP2);
-        wait_ms(1);
-        writePinLow(GP2);
-        wait_ms(1);
-        writePinHigh(GP2);
-        return;
-    }
-
 
     uint offset = pio_add_program(pio, &i2c_program);
     i2c_program_init(pio, sm, offset, PIN_SDA, PIN_SCL);
 
     // reset mcp
-    writePinHigh(GP2);
+    writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(1);
-    writePinLow(GP2);
+    writePinLow(MCP23017_RESET_GPIO);
     wait_ms(1);
-    writePinHigh(GP2);
+    writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(5);
 
     // i2c bus scan for debug
@@ -217,6 +172,7 @@ void matrix_init_custom(void) {
         // byte. Skip over reserved addresses.
         int result;
         result = pio_i2c_read_blocking(pio, sm, addr, NULL, 0);
+        // pio_sm_clear_fifos(pio, sm);
 
         uprintf(result < 0 ? "." : "@");
         uprintf(addr % 16 == 15 ? "\n" : "  ");
