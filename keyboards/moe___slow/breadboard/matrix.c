@@ -151,6 +151,7 @@ void matrix_init_custom(void) {
     uint offset = pio_add_program(pio, &i2c_program);
     i2c_program_init(pio, sm, offset, PIN_SDA, PIN_SCL);
 
+/*
     // reset mcp
     writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(1);
@@ -181,6 +182,7 @@ void matrix_init_custom(void) {
     // bus scan end
 
     wait_ms(2000);
+*/
 
     // reset mcp
     writePinHigh(GP2);
