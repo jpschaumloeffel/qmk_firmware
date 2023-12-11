@@ -1,31 +1,30 @@
 #include <stdint.h>
-#include "gpio.h"
-#include "hal_i2c.h"
-#include "pio_i2c.h"
+
 #include "wait.h"
 #include "info_config.h"
 #include "quantum.h"
 #include "matrix.h"
 #include "print.h"
+#include "gpio.h"
+#include "pio_i2c.h"
 
-#include "i2c.pio.h"
-
-/*
 #define GPIO_ROW0 GP2
-#define GPIO_ROW1 GP22
+#define GPIO_ROW1 GP18  // 22 on SparkFun
 #define GPIO_ROW2 GP4
 #define GPIO_ROW3 GP7
 #define GPIO_ROW4 GP6
+#define GPIO_ROW5 GP5
 
-uint8_t row_pins[MATRIX_ROWS] = {GPIO_ROW0, GPIO_ROW1, GPIO_ROW2, GPIO_ROW3, GPIO_ROW4};
+static uint8_t row_pins[MATRIX_ROWS] = { GPIO_ROW0, GPIO_ROW1, GPIO_ROW2, GPIO_ROW3, GPIO_ROW4, GPIO_ROW5 };
 
 #define COL_PIN_COUNT 7
 // col0..6 are on GPIOs directly
-uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP23, GP9, GP8 };
-*/
+static uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP19, GP9, GP8 };
+
+#define COLS_ON_PORT_A 6
 
 #define MCP23017_TWI_ADDRESS 0x20
-#define MCP23017_RESET_GPIO GP2
+#define MCP23017_RESET_GPIO GP3
 
 #define IOCON 0x0A
 #define IOCON_BANK1 0x05
@@ -86,23 +85,30 @@ static uint8_t mcp23017_init(void) {
     // - input   : input  : 1
     // - driving : output : 0
 
-    data[0] = 0b11111100;  // IODIRA
-    data[1] = 0b11111111;  // IODIRB
+    // set column pins as output
+    data[0] = 0b11000000;  // IODIRA
+    data[1] = 0b11000000;  // IODIRB
     ret = i2c_write_reg(MCP23017_TWI_ADDRESS, IODIRA, data, 2);
 
     uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, IODIRA, ret, data[0], data[1]);
 
     if (ret) goto out;  // make sure we got an ACK
 
-    // configure pull-ups
-    data[0] = 0b00000000;
-    data[1] = 0b00000011;
+    // configure no pull-ups for col pins
+    data[0] = 0b11000000;
+    data[1] = 0b11000000;
 
     ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPPUA, data, 2);
 
     uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, GPPUA, ret, data[0], data[1]);
 
     if (ret) goto out;  // make sure we got an ACK
+
+    // write ones to all columns (no column active)
+    data[0] = 0xFF;
+    data[1] = 0xFF;
+    ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
+
  out:
     return ret;
 }
@@ -110,17 +116,18 @@ static uint8_t mcp23017_init(void) {
 void matrix_init_custom(void) {
     // TODO: initialize hardware here
 
-    /*
     // not sure if needed (?) copied from dilemma.c
     for (int i=0; i<MATRIX_ROWS; i++) {
+        // row pins are inputs with pullup
         gpio_init(row_pins[i]);
-        setPinInput(row_pins[i]);
+        setPinInputHigh(row_pins[i]);
     }
     for (int i=0; i<COL_PIN_COUNT; i++) {
+        // col pins are outputs and start all inactive (== high)
         gpio_init(col_pins[i]);
-        setPinInput(col_pins[i]);
+        setPinOutput(col_pins[i]);
+        writePinHigh(col_pins[i]);
     }
-    */
 
     debug_enable = true;
     debug_keyboard = true;
@@ -185,29 +192,65 @@ void matrix_init_custom(void) {
 */
 
     // reset mcp
-    writePinHigh(GP2);
+    writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(1);
-    writePinLow(GP2);
+    writePinLow(MCP23017_RESET_GPIO);
     wait_ms(1);
-    writePinHigh(GP2);
+    writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(5);
 
     mcp23017_init();
 }
 
-void matrix_set_row_status(uint8_t row) {
-    // set only one row as output
-    /*
+void matrix_set_col_status(uint8_t col) {
+    // set only one col as output (low), others inactive (high)
+    uint8_t data[2];
+    uint8_t ret;
+    (void) ret;
+
+    if (col == 0) {
+        // first col should be active, set all the cols on the expander inactive once
+        data[0] = 0xFF;
+        data[1] = 0xFF;
+        ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
+    }
+
+    if (col > 0 && col <= COL_PIN_COUNT) {
+        // deactivate previously inactive col GPIO
+        writePinHigh(col_pins[col - 1]);
+    }
+
+    if (col < COL_PIN_COUNT) {
+        writePinLow(col_pins[col]);
+    } else {
+        // set the col active via the port expander
+        // first col starts near the MSB on each port
+        data[0] = 0xFF;
+        data[1] = 0xFF;
+        if ((col - COL_PIN_COUNT) < COLS_ON_PORT_A) {
+            // col is on port A
+
+            data[0] = ~(0x20 >> (col - COL_PIN_COUNT));
+        } else {
+            // col is on port B
+            data[1] = ~(0x20 >> (col - (COL_PIN_COUNT + COLS_ON_PORT_A)));
+        }
+        ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
+
+        // TODO this could be optimized a bit, we don't need to write both registers all the time if they don't change
+    }
+
+/*
     for (uint8_t i = 0; i < MATRIX_ROWS; i++) {
         if (row == i) {
             setPinOutput(row_pins[i]);
-            writePinHigh(row_pins[i]);
+            writePinLow(row_pins[i]);
         } else {
             setPinInput(row_pins[i]);
         }
     }
     */
-
+    /*
     uint8_t data;
     uint8_t ret;
     (void) ret;
@@ -216,6 +259,8 @@ void matrix_set_row_status(uint8_t row) {
     data = 0xFF & ~(1 << row);
     ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, &data, 1);
 
+    */
+
     // uprintf("%s: wrote to %x, result=%d, data=%x\n", __FUNCTION__, GPIOA, ret, data);
 }
 
@@ -223,13 +268,50 @@ void matrix_set_row_status(uint8_t row) {
 bool matrix_scan_custom(matrix_row_t current_matrix[]) {
     bool matrix_has_changed = false;
 
+    // save entire matrix
+    // could probably eliminate with some bit masking below
+    matrix_row_t last_matrix[MATRIX_ROWS];
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        last_matrix[row] = current_matrix[row];
+    }
+
+    for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+
+        // enable output col
+        matrix_set_col_status(col);
+        matrix_io_delay();
+
+        // read all rows
+        for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+            // insert bit if row pulled low by pressed key
+            bool active = readPin(row_pins[row]);
+            if (!active) {
+                current_matrix[row] |= (1 << col);
+            } else {
+                // mask col
+                current_matrix[row] &= ~(0x01 << col);
+            }
+        }
+    }
+
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        if (last_matrix[row] != current_matrix[row]) {
+            matrix_has_changed = true;
+            break;
+        }
+    }
+
+    /*
+
     for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
         matrix_row_t last_row_value = current_matrix[row];
         matrix_row_t cols = 0;
 
-        // enable row driver
-        matrix_set_row_status(row);
+        // enable output row
+        matrix_set_col_status(row);
         matrix_io_delay();
+
+        // now detect which cols can detect a zero (== key pressed)
 
         uint8_t port_b;
         uint8_t ret;
@@ -240,7 +322,7 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
         // uprintf("%s: read from %x, result=%d, data=%x\n", __FUNCTION__, GPIOB, ret, port_b);
         cols = ~port_b & 0x03;
 
-        /*
+        / *
         // read port expander
         uint8_t port_a, port_b;
         i2c_readReg(MCP23017_TWI_ADDRESS, GPIOA, &port_a, 1, I2C_TIMEOUT);
@@ -273,11 +355,12 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
                 cols <<= 1;
             }
         }
-        */
+        * /
 
         current_matrix[row] = cols;
         matrix_has_changed |= (last_row_value != current_matrix[row]);
     }
+    */
 
     return matrix_has_changed;
 }
