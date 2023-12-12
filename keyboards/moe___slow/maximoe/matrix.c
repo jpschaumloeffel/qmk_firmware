@@ -1,12 +1,11 @@
 #include <stdint.h>
 
-#include "wait.h"
-#include "info_config.h"
 #include "quantum.h"
+#include "info_config.h"
 #include "matrix.h"
 #include "print.h"
 #include "gpio.h"
-#include "pio_i2c.h"
+#include "moe_i2c.h"
 
 #define GPIO_ROW0 GP2
 #define GPIO_ROW1 GP18  // 22 on SparkFun
@@ -38,34 +37,6 @@ static uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP19, GP9, GP
 #define GPIOA  0x12  // general purpose i/o port register (write modifies OLAT)
 #define GPIOB  0x13
 
-#define PIN_SCL GP0
-#define PIN_SDA GP1
-
-static PIO pio;
-static uint sm = 0;
-
-// i2c read register
-static uint8_t i2c_read_reg(uint8_t i2c_addr, uint8_t reg_addr, void* rxbuf, uint8_t len) {
-
-    // TODO this only works for single master systems, because no repeated start condition is generated
-
-    // write register address
-    pio_i2c_write_blocking(pio, sm, i2c_addr, &reg_addr, 1);
-
-    // read data from device
-    return pio_i2c_read_blocking(pio, sm, i2c_addr, rxbuf, len);
-}
-
-
-// i2c write register
-static uint8_t i2c_write_reg(uint8_t i2c_addr, uint8_t reg_addr, void* txbuf, uint8_t len) {
-    uint8_t data[128];
-    data[0] = reg_addr;
-    memcpy(&data[1], txbuf, len);
-
-    return pio_i2c_write_blocking(pio, sm, i2c_addr, data, len + 1);
-}
-
 
 static uint8_t mcp23017_init(void) {
     // default: iocon.bank = 0, iocon.seqop = 0
@@ -74,10 +45,10 @@ static uint8_t mcp23017_init(void) {
     uint8_t ret = 0;
     uint8_t data[4];
 
-    ret = i2c_read_reg(MCP23017_TWI_ADDRESS, IOCON, data, 2);
+    ret = moe_i2c_read_reg(MCP23017_TWI_ADDRESS, IOCON, data, 2);
     uprintf("%s: read from IOCON (%x), result=%d, data=%x %x\n", __FUNCTION__, IOCON, ret, data[0], data[1]);
 
-    ret = i2c_read_reg(MCP23017_TWI_ADDRESS, IOCON, data, 2);
+    ret = moe_i2c_read_reg(MCP23017_TWI_ADDRESS, IOCON, data, 2);
     uprintf("%s: read from IOCON (%x), result=%d, data=%x %x\n", __FUNCTION__, IOCON_BANK1, ret, data[0], data[1]);
 
     // set pin direction
@@ -88,7 +59,7 @@ static uint8_t mcp23017_init(void) {
     // set column pins as output
     data[0] = 0b11000000;  // IODIRA
     data[1] = 0b11000000;  // IODIRB
-    ret = i2c_write_reg(MCP23017_TWI_ADDRESS, IODIRA, data, 2);
+    ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, IODIRA, data, 2);
 
     uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, IODIRA, ret, data[0], data[1]);
 
@@ -98,7 +69,7 @@ static uint8_t mcp23017_init(void) {
     data[0] = 0b11000000;
     data[1] = 0b11000000;
 
-    ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPPUA, data, 2);
+    ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPPUA, data, 2);
 
     uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, GPPUA, ret, data[0], data[1]);
 
@@ -107,7 +78,7 @@ static uint8_t mcp23017_init(void) {
     // write ones to all columns (no column active)
     data[0] = 0xFF;
     data[1] = 0xFF;
-    ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
+    ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
 
  out:
     return ret;
@@ -119,12 +90,10 @@ void matrix_init_custom(void) {
     // not sure if needed (?) copied from dilemma.c
     for (int i=0; i<MATRIX_ROWS; i++) {
         // row pins are inputs with pullup
-        gpio_init(row_pins[i]);
         setPinInputHigh(row_pins[i]);
     }
     for (int i=0; i<COL_PIN_COUNT; i++) {
         // col pins are outputs and start all inactive (== high)
-        gpio_init(col_pins[i]);
         setPinOutput(col_pins[i]);
         writePinHigh(col_pins[i]);
     }
@@ -137,26 +106,7 @@ void matrix_init_custom(void) {
 
     setPinOutput(MCP23017_RESET_GPIO);
 
-    // select pio
-    pio = pio0;
-
-    uint pio_idx = pio_get_index(pio);
-    /* Get PIOx peripheral out of reset state. */
-    hal_lld_peripheral_unreset(pio_idx == 0 ? RESETS_ALLREG_PIO0 : RESETS_ALLREG_PIO1);
-
-    // clang-format off
-    iomode_t rgb_pin_mode = PAL_RP_PAD_SLEWFAST |
-                            PAL_RP_GPIO_OE |
-                            (pio_idx == 0 ? PAL_MODE_ALTERNATE_PIO0 : PAL_MODE_ALTERNATE_PIO1);
-    // clang-format on
-
-    palSetLineMode(PIN_SDA, rgb_pin_mode);
-    palSetLineMode(PIN_SCL, rgb_pin_mode);
-
-    sm = pio_claim_unused_sm(pio, true);
-
-    uint offset = pio_add_program(pio, &i2c_program);
-    i2c_program_init(pio, sm, offset, PIN_SDA, PIN_SCL);
+    moe_i2c_init();
 
 /*
     // reset mcp
@@ -212,7 +162,7 @@ void matrix_set_col_status(uint8_t col) {
         // first col should be active, set all the cols on the expander inactive once
         data[0] = 0xFF;
         data[1] = 0xFF;
-        ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
+        ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
     }
 
     if (col > 0 && col <= COL_PIN_COUNT) {
@@ -235,7 +185,7 @@ void matrix_set_col_status(uint8_t col) {
             // col is on port B
             data[1] = ~(0x20 >> (col - (COL_PIN_COUNT + COLS_ON_PORT_A)));
         }
-        ret = i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
+        ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
 
         // TODO this could be optimized a bit, we don't need to write both registers all the time if they don't change
     }
