@@ -37,6 +37,8 @@ static uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP19, GP9, GP
 #define GPIOA  0x12  // general purpose i/o port register (write modifies OLAT)
 #define GPIOB  0x13
 
+#define GPINTENA 0x04 
+#define GPINTENB 0x05
 
 void keyboard_post_init_user(void) {
   // Customise these values to desired behaviour
@@ -65,8 +67,8 @@ static uint8_t mcp23017_init(void) {
     // - driving : output : 0
 
     // set column pins as output
-    data[0] = 0b11000000;  // IODIRA
-    data[1] = 0b11000000;  // IODIRB
+    data[0] = 0b00000000;  // IODIRA
+    data[1] = 0b00000000;  // IODIRB
     ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, IODIRA, data, 2);
 
     // uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, IODIRA, ret, data[0], data[1]);
@@ -74,14 +76,20 @@ static uint8_t mcp23017_init(void) {
     if (ret) goto out;  // make sure we got an ACK
 
     // configure no pull-ups for col pins
-    data[0] = 0b11000000;
-    data[1] = 0b11000000;
+    data[0] = 0b00000000;
+    data[1] = 0b00000000;
 
     ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPPUA, data, 2);
 
     // uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, GPPUA, ret, data[0], data[1]);
 
     if (ret) goto out;  // make sure we got an ACK
+
+    // disable interrupts
+    data[0] = 0;
+    data[1] = 0;
+    moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPINTENA, data, 2);
+
 
     // write ones to all columns (no column active)
     data[0] = 0xFF;
