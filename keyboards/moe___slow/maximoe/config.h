@@ -13,6 +13,8 @@
 #define DEBUG
 #define DEBUG_MATRIX_SCAN_RATE
 
+#define MATRIX_IO_DELAY 1000
+
 /* disable print */
 //#define NO_PRINT
 

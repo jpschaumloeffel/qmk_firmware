@@ -142,3 +142,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______
     )
 };
+
+bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+    switch(keycode) {
+        case KC_MINS:
+            unregister_mods(MOD_MASK_SHIFT);
+            unregister_weak_mods(MOD_MASK_SHIFT);
+            return true;
+    }
+    return true;
+}
