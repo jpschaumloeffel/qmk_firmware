@@ -7,4 +7,4 @@ SRC += maximoe/matrix.c maximoe/pio_i2c.c maximoe/moe_i2c.c
 UNICODE_COMMON = yes
 UNICODE_ENABLE = yes
 
-CONSOLE_ENABLE = yes
+# CONSOLE_ENABLE = yes
