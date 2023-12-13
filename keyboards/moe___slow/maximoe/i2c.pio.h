@@ -58,7 +58,7 @@ static inline pio_sm_config i2c_program_get_default_config(uint offset) {
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 static inline void i2c_program_init(PIO pio, uint sm, uint offset, uint pin_sda, uint pin_scl) {
-    assert(pin_scl == pin_sda + 1);
+    assert(pin_sda == pin_scl + 1);
     pio_sm_config c = i2c_program_get_default_config(offset);
     // IO mapping
     sm_config_set_out_pins(&c, pin_sda, 1);

@@ -7,12 +7,15 @@
 #include "gpio.h"
 #include "moe_i2c.h"
 
-#define GPIO_ROW0 GP2
+#define GPIO_ROW0 GP27  // different from layout, but same on kb2040 and sparkfun23
 #define GPIO_ROW1 GP18  // 22 on SparkFun
 #define GPIO_ROW2 GP4
 #define GPIO_ROW3 GP7
 #define GPIO_ROW4 GP6
 #define GPIO_ROW5 GP5
+
+#define INACTIVE_PIN_COUNT 1
+static uint8_t inactive_pins[INACTIVE_PIN_COUNT] = { 2U };
 
 static uint8_t row_pins[MATRIX_ROWS] = { GPIO_ROW0, GPIO_ROW1, GPIO_ROW2, GPIO_ROW3, GPIO_ROW4, GPIO_ROW5 };
 
@@ -42,8 +45,8 @@ static uint8_t col_pins[COL_PIN_COUNT] = { GP26, GP20, GP28, GP29, GP19, GP9, GP
 
 void keyboard_post_init_user(void) {
   // Customise these values to desired behaviour
-  debug_enable=true;
-  debug_matrix=true;
+  // debug_enable=true;
+  // debug_matrix=true;
   //debug_keyboard=true;
   //debug_mouse=true;
 }
@@ -56,10 +59,7 @@ static uint8_t mcp23017_init(void) {
     uint8_t data[4];
 
     ret = moe_i2c_read_reg(MCP23017_TWI_ADDRESS, IOCON, data, 2);
-    // uprintf("%s: read from IOCON (%x), result=%d, data=%x %x\n", __FUNCTION__, IOCON, ret, data[0], data[1]);
-
     ret = moe_i2c_read_reg(MCP23017_TWI_ADDRESS, IOCON, data, 2);
-    // uprintf("%s: read from IOCON (%x), result=%d, data=%x %x\n", __FUNCTION__, IOCON_BANK1, ret, data[0], data[1]);
 
     // set pin direction
     // - unused  : input  : 1
@@ -71,8 +71,6 @@ static uint8_t mcp23017_init(void) {
     data[1] = 0b00000000;  // IODIRB
     ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, IODIRA, data, 2);
 
-    // uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, IODIRA, ret, data[0], data[1]);
-
     if (ret) goto out;  // make sure we got an ACK
 
     // configure no pull-ups for col pins
@@ -81,19 +79,16 @@ static uint8_t mcp23017_init(void) {
 
     ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPPUA, data, 2);
 
-    // uprintf("%s: wrote to %x, result=%d, data=%x %x\n", __FUNCTION__, GPPUA, ret, data[0], data[1]);
-
     if (ret) goto out;  // make sure we got an ACK
 
     // disable interrupts
     data[0] = 0;
     data[1] = 0;
-    moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPINTENA, data, 2);
-
+    ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPINTENA, data, 2);
 
     // write ones to all columns (no column active)
-    data[0] = 0xFF;
-    data[1] = 0xFF;
+    data[0] = 0x3F;
+    data[1] = 0x3F;
     ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
 
  out:
@@ -102,27 +97,33 @@ static uint8_t mcp23017_init(void) {
 
 void matrix_init_custom(void) {
 
+    // pin configuration
+    for (int i=0; i < INACTIVE_PIN_COUNT; i++) {
+        palSetLineMode(inactive_pins[i], PAL_MODE_UNCONNECTED);
+    }
     for (int i=0; i < MATRIX_ROWS; i++) {
         // row pins are inputs with pullup
+        palSetLineMode(row_pins[i], PAL_MODE_OUTPUT_PUSHPULL);
         setPinInputHigh(row_pins[i]);
     }
     for (int i=0; i < COL_PIN_COUNT; i++) {
         // col pins are outputs and start all inactive (== high)
+        palSetLineMode(col_pins[i], PAL_MODE_OUTPUT_PUSHPULL);
         setPinOutput(col_pins[i]);
         writePinHigh(col_pins[i]);
     }
     setPinOutput(MCP23017_RESET_GPIO);
 
+    // init i2c
     moe_i2c_init();
 
-    // reset mcp
+    // reset and init mcp23017
     writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(1);
     writePinLow(MCP23017_RESET_GPIO);
     wait_ms(1);
     writePinHigh(MCP23017_RESET_GPIO);
     wait_ms(5);
-
     mcp23017_init();
 }
 
