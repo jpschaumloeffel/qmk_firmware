@@ -110,9 +110,15 @@ enum layer_names {
 // neo mod 4 -> go into layer 4, no modifier applied
 #define KC_MOD4 MO(_NL4)
 
-// take screenshot on mac
-#define KC_SSHT C(S(G(KC_4)))
+#define KC_IDEA_F_N A(S(KC_DOWN))
+#define KC_IDEA_F_P A(S(KC_UP))
 
+// take screenshot on mac
+// #define KC_SSHT C(S(G(KC_4)))
+
+// Linux - just use prtscr
+#define KC_SSHT KC_PRINT_SCREEN
+#define KC_CAD RCTL(RALT(KC_DEL))
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* Neo2 layer 1
@@ -133,7 +139,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_TAB,  KC_X,    KC_V,    KC_L,    KC_C,    KC_W,    KC_K,    KC_H,    KC_G,    KC_F,    KC_Q,    UC_SS,   UC_ACUT, KC_PGUP, KC_PGDN,
         KC_MOD3, KC_U,    KC_I,    KC_A,    KC_E,    KC_O,    KC_S,    KC_N,    KC_R,    KC_T,    KC_D,    KC_Y,    KC_MOD3, KC_HOME, KC_END,
         KC_LNSH, UC_UE,   UC_OE,   UC_AE,   KC_P,    KC_Z,    KC_B,    KC_M,    KC_COMM, KC_DOT,  KC_J,    KC_RNSH, KC_RNSH, KC_UP,   KC_ENT,
-        KC_LCTL, MO(_FN), KC_LALT, KC_MOD4, KC_LGUI, KC_SPC,  KC_ENT,  KC_MOD4, KC_RALT, MO(_FN), KC_NO,   KC_NO,   KC_LEFT, KC_DOWN, KC_RGHT
+        KC_LCTL, MO(_FN), KC_LALT, KC_MOD4, KC_LGUI, KC_SPC,  KC_ENT,  KC_MOD4, KC_RALT, MO(_FN), KC_IDEA_F_P, KC_IDEA_F_N, KC_LEFT, KC_DOWN, KC_RGHT
     ),
 
     /* Neo2 layer 2, where differing from US/Mac
@@ -213,7 +219,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * '--------------------------------------------------------------------------------------------------------------------------------------'
      */
     [_FN] = LAYOUT_ortho_5x15( /* FUNCTION */
-        _______, KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  _______, QK_RBT,
+        KC_CAD , KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  QK_BOOT, QK_RBT,
         _______, _______, _______, _______, RGB_HUD, RGB_HUI, _______, _______, _______, _______, _______, _______, _______, UC_PREV, UC_NEXT,
         _______, RGB_M_G, RGB_M_R, _______, RGB_SAD, RGB_SAI, _______, _______, _______, _______, _______, _______, _______, _______, DB_TOGG,
         _______, RGB_M_SN,RGB_M_P, _______, RGB_VAD, RGB_VAI, _______, _______, _______, _______, _______, _______, KC_MUTE, KC_VOLU, KC_MPLY,
