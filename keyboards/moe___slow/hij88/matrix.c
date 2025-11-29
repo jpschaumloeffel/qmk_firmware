@@ -18,68 +18,46 @@ static uint8_t row_pins[MATRIX_ROWS] = { GPIO_ROW0, GPIO_ROW1, GPIO_ROW2, GPIO_R
 static uint8_t col_pins[COL_PIN_COUNT] = { GPIO_COL0, GPIO_COL2, GPIO_COL4, GPIO_COL6, GPIO_COL8, GPIO_COL10, GPIO_COL12, GPIO_COL14, GPIO_COL16 };
 
 
+void matrix_set_col2row(void) {
+    // bring gpios to "col2row" configuration
+    // diodes are configured like this:
+    // COL_N --[>|]-- ROW_M
+
+    for (int i=0; i < MATRIX_ROWS; i++) {
+        // row pins are inputs with pulldown
+        setPinInputLow(row_pins[i]);
+    }
+    for (int i=0; i < COL_PIN_COUNT; i++) {
+        // col pins are outputs and start inactive (low)
+        setPinOutput(col_pins[i]);
+        writePinLow(col_pins[i]);
+    }
+}
+
+void matrix_set_row2col(void) {
+    // bring gpios to "row2col" configuration
+    // diodes are configured like this:
+    // COL_N --[|<]-- ROW_M
+
+    for (int i=0; i < MATRIX_ROWS; i++) {
+        // row pins are outputs with and start inactive (low)
+        setPinOutput(row_pins[i]);
+        writePinLow(row_pins[i]);
+    }
+    for (int i=0; i < COL_PIN_COUNT; i++) {
+        // col pins are inputs with pulldown
+        setPinInputLow(col_pins[i]);
+    }
+}
+
 void matrix_init_custom(void) {
 
     // pin configuration
     for (int i=0; i < INACTIVE_PIN_COUNT; i++) {
         palSetLineMode(inactive_pins[i], PAL_MODE_UNCONNECTED);
     }
-    for (int i=0; i < MATRIX_ROWS; i++) {
-        // row pins are inputs with pullup
-        palSetLineMode(row_pins[i], PAL_MODE_OUTPUT_PUSHPULL);
-        setPinInputHigh(row_pins[i]);
-    }
-    for (int i=0; i < COL_PIN_COUNT; i++) {
-        // col pins are outputs and start all inactive (== high)
-        palSetLineMode(col_pins[i], PAL_MODE_OUTPUT_PUSHPULL);
-        setPinOutput(col_pins[i]);
-        writePinHigh(col_pins[i]);
-    }
-
-}
-
-void matrix_set_col_status(uint8_t col) {
-
-    /*
-    // set only one col as output (low), others inactive (high)
-    uint8_t data[2];
-    uint8_t ret;
-    (void) ret;
-
-    if (col == 0) {
-        // first col should be active, set all the cols on the expander inactive once
-        data[0] = 0x3F;
-        data[1] = 0x3F;
-        ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
-    }
-
-    if (col > 0 && col <= COL_PIN_COUNT) {
-        // deactivate previously inactive col GPIO
-        writePinHigh(col_pins[col - 1]);
-    }
-
-    // write high column
-    if (col < COL_PIN_COUNT) {
-        // directly via pin
-        writePinLow(col_pins[col]);
-    } else {
-        // set the col active via the port expander
-        // first col starts near the MSB on each port
-        data[0] = 0x3F;
-        data[1] = 0x3F;
-        if ((col - COL_PIN_COUNT) < COLS_ON_PORT_A) {
-            // col is on port A
-
-            data[0] = ~(0x20 >> (col - COL_PIN_COUNT));
-        } else {
-            // col is on port B
-            data[1] = ~(0x20 >> (col - (COL_PIN_COUNT + COLS_ON_PORT_A)));
-        }
-        ret = moe_i2c_write_reg(MCP23017_TWI_ADDRESS, GPIOA, data, 2);
-
-        // TODO this could be optimized a bit, we don't need to write both registers all the time if they don't change
-    }
-    */
+    // just define something
+    matrix_set_col2row();
 }
 
 
@@ -99,7 +77,57 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
     // 3) configure pins row2col
     // 4) activate rows, read uneven columns
 
+    matrix_set_col2row();
 
+    for (uint8_t col = 0; col < COL_PIN_COUNT; col++) {
+
+        // enable output col
+        writePinHigh(col_pins[col]);
+
+        matrix_io_delay();
+
+        // read all rows
+        for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+            // insert bit for EVEN COLUMN if row pulled high by pressed key
+            bool active = readPin(row_pins[row]);
+            int bit_idx = col * 2;
+            if (active) {
+                current_matrix[row] |= (1 << bit_idx);
+            } else {
+                // mask col
+                current_matrix[row] &= ~(0x01 << bit_idx);
+            }
+        }
+
+        // disable output col
+        writePinLow(col_pins[col]);
+    }
+
+    matrix_set_row2col();
+
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+
+        // enable output row
+        writePinHigh(row_pins[row]);
+
+        matrix_io_delay();
+
+        // read all cols
+        for (uint8_t col = 0; col < COL_PIN_COUNT - 1; col++) {
+            // insert bit for EVEN COLUMN if row pulled high by pressed key
+            bool active = readPin(col_pins[col]);
+            int bit_idx = col * 2 + 1;
+            if (active) {
+                current_matrix[row] |= (1 << bit_idx);
+            } else {
+                // mask col
+                current_matrix[row] &= ~(0x01 << bit_idx);
+            }
+        }
+
+        // disable output row
+        writePinLow(row_pins[row]);
+    }
 
     for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
         if (last_matrix[row] != current_matrix[row]) {
