@@ -220,10 +220,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      */
     [_FN] = LAYOUT_ortho_5x15( /* FUNCTION */
         KC_CAD , KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  QK_BOOT, QK_RBT,
-        _______, _______, _______, _______, RGB_HUD, RGB_HUI, _______, _______, _______, _______, _______, _______, _______, UC_PREV, UC_NEXT,
-        _______, RGB_M_G, RGB_M_R, _______, RGB_SAD, RGB_SAI, _______, _______, _______, _______, _______, _______, _______, _______, DB_TOGG,
-        _______, RGB_M_SN,RGB_M_P, _______, RGB_VAD, RGB_VAI, _______, _______, _______, _______, _______, _______, KC_MUTE, KC_VOLU, KC_MPLY,
-        _______, MO(_FN), RGB_TOG, _______, RGB_RMOD,RGB_MOD, _______, _______, _______, MO(_FN), _______, _______, KC_MPRV, KC_VOLD, KC_MNXT
+        _______, _______, _______, _______, UG_HUED, UG_HUEU, _______, _______, _______, _______, _______, _______, UC_WIN,  UC_WINC, UC_LINX,
+        _______, _______, _______, _______, UG_SATD, UG_SATU, _______, _______, _______, _______, _______, _______, _______, _______, DB_TOGG,
+        _______, UG_SPDD, UG_SPDU, _______, UG_VALD, UG_VALU, _______, _______, _______, _______, _______, _______, KC_MUTE, KC_VOLU, KC_MPLY,
+        _______, MO(_FN), UG_TOGG, _______, UG_PREV, UG_NEXT, _______, _______, _______, MO(_FN), _______, _______, KC_MPRV, KC_VOLD, KC_MNXT
     )
 };
 
