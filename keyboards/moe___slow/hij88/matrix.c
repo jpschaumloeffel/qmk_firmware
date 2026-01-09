@@ -138,3 +138,11 @@ bool matrix_scan_custom(matrix_row_t current_matrix[]) {
 
     return matrix_has_changed;
 }
+
+void keyboard_post_init_user(void) {
+  // Customise these values to desired behaviour
+  //debug_enable=true;
+  //debug_matrix=true;
+  //debug_keyboard=true;
+  //debug_mouse=true;
+}
