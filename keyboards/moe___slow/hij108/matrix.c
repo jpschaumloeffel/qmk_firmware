@@ -7,15 +7,10 @@
 #include "gpio.h"
 
 
-
-#define INACTIVE_PIN_COUNT 3
-static uint8_t inactive_pins[INACTIVE_PIN_COUNT] = { 9U, 10U, 19U };
-
-static uint8_t row_pins[MATRIX_ROWS] = { GPIO_ROW0, GPIO_ROW1, GPIO_ROW2, GPIO_ROW3, GPIO_ROW4, GPIO_ROW5 };
-
-#define COL_PIN_COUNT ((MATRIX_COLS+1) / 2)
-// each col represents two actual columns
-static uint8_t col_pins[COL_PIN_COUNT] = { GPIO_COL0, GPIO_COL2, GPIO_COL4, GPIO_COL6, GPIO_COL8, GPIO_COL10, GPIO_COL12, GPIO_COL14, GPIO_COL16 };
+// keyboard specific header must define these, see hij108.h
+static uint8_t inactive_pins[INACTIVE_PIN_COUNT] = { INACTIVE_PINS };
+static uint8_t row_pins[ROW_PIN_COUNT] = { ROW_PINS };
+static uint8_t col_pins[COL_PIN_COUNT] = { COL_PINS };
 
 void matrix_activate_row(int row) {
     setPinOutput(row_pins[row]);
