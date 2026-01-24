@@ -3,22 +3,7 @@
 
 #pragma once
 
-#define GPIO_ROW0 GP29
-#define GPIO_ROW1 GP6
-#define GPIO_ROW2 GP20
-#define GPIO_ROW3 GP7
-#define GPIO_ROW4 GP19
-#define GPIO_ROW5 GP8
-
-#define GPIO_COL0  GP10
-#define GPIO_COL2  GP2
-#define GPIO_COL4  GP28
-#define GPIO_COL6  GP3
-#define GPIO_COL8  GP27
-#define GPIO_COL10 GP4
-#define GPIO_COL12 GP26
-#define GPIO_COL14 GP5
-#define GPIO_COL16 GP18
+#include "hij88.h"
 
 /*
  * Feature disable options
